@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {useOutletContext} from "react-router";
 import {CheckCircle2, ImageIcon, UploadIcon} from "lucide-react";
 import {PROGRESS_INTERVAL_MS, PROGRESS_STEP, REDIRECT_DELAY_MS} from "../lib/constants";
@@ -11,24 +11,40 @@ const Upload: React.FC<UploadProps> = ({ onComplete }) => {
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [progress, setProgress] = useState(0);
+    
 
     const {isSignedIn} = useOutletContext<AuthContext>() // to check login
 
+    const uploadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const uploadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const processFile = useCallback((file: File) => {
         if (!isSignedIn) return;
+
+        // Clear existing timers
+        if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+        if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
+
         setFile(file);
         setProgress(0);
 
         const reader = new FileReader();
+        reader.onerror=()=>{ // Error handling for image reading
+            setFile(null);
+            setProgress(0);
+        }
         reader.onload = (e) => {
             const base64 = e.target?.result as string;
             
-            const interval = setInterval(() => {
+            uploadIntervalRef.current = setInterval(() => {
                 setProgress((prev) => {
                     if (prev >= 100) {
-                        clearInterval(interval);
-                        setTimeout(() => {
+                        if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+                        uploadIntervalRef.current = null;
+
+                        uploadTimeoutRef.current = setTimeout(() => {
                             onComplete?.(base64);
+                            uploadTimeoutRef.current = null;
                         }, REDIRECT_DELAY_MS);
                         return 100;
                     }
@@ -38,6 +54,13 @@ const Upload: React.FC<UploadProps> = ({ onComplete }) => {
         };
         reader.readAsDataURL(file);
     }, [isSignedIn, onComplete]);
+
+    useEffect(() => {
+        return () => {
+            if (uploadIntervalRef.current) clearInterval(uploadIntervalRef.current);
+            if (uploadTimeoutRef.current) clearTimeout(uploadTimeoutRef.current);
+        };
+    }, []);
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -53,9 +76,12 @@ const Upload: React.FC<UploadProps> = ({ onComplete }) => {
         setIsDragging(false);
         if (!isSignedIn) return;
 
-        const files = e.dataTransfer.files;
-        if (files && files.length > 0) {
-            processFile(files[0]);
+        const droppedFile = e.dataTransfer.files[0]
+        const allowedTypes = ['image/jpeg','image/jpp','image/png'];
+        if(droppedFile && allowedTypes.includes(droppedFile.type)) {
+            processFile(droppedFile);
+
+
         }
     };
 
@@ -70,7 +96,7 @@ const Upload: React.FC<UploadProps> = ({ onComplete }) => {
     return (
         <div className="upload">
             {!file ? (
-                <div 
+                <div
                     className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
