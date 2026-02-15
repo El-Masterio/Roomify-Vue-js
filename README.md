@@ -85,3 +85,13 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 ---
 
 Built with ❤️ using React Router.
+
+# Roomify-Vue-js
+## **AI-powered architectural visualization SaaS** using React, TypeScript, and Puter.js
+
+Use **AI models** from Claude to Gemini to transform **2D floor plans** into photorealistic **3D renders** with permanent hosting and persistent metadata. 
+This project features 2D-to-3D photorealistic rendering, serverless workers, high-performance KV storage, and a global community feed.
+
+
+### This project is wirrten by Ahmad following a JS-Mastery youtube tutorial Video. You can find his channel right  [Here](https://www.youtube.com/@javascriptmastery)
+
