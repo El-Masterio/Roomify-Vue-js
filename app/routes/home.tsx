@@ -2,6 +2,8 @@ import type { Route } from "./+types/home";
 import Navbar from "../../components/Navbar";
 import {ArrowRight, ArrowUpRight, Clock, Layers} from "lucide-react";
 import Button from "../../components/ui/Button";
+import Upload from "../../components/Upload";
+import {useNavigate} from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -11,6 +13,14 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+    const navigate = useNavigate();
+    const handleUploadComplete = async (base64Image:string) => {
+        const newId = Date.now().toString();  // we have to get the Id of the Image but we have to create it first by getting current date and turn it to a string
+
+        navigate(`/visualizer/${newId}`, { state: { image: base64Image } });
+
+        return true;
+    }
   return (
       <div className="home">
         <Navbar />
@@ -46,9 +56,9 @@ export default function Home() {
                           <Layers className="icon" />
                       </div>
                       <h3>Upload your floor plan</h3>
-                      <p>supports JPG, PNG, formats up to 10MB</p>
+                      <p>supports JPG, PNG, formats up to 50MB</p>
                   </div>
-                  <p>Upload images</p>
+                  <Upload onComplete={handleUploadComplete}/>
               </div>
           </div>
       </section>
