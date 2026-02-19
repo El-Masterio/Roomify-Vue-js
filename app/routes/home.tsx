@@ -4,7 +4,7 @@ import {ArrowRight, ArrowUpRight, Clock, Layers} from "lucide-react";
 import Button from "../../components/ui/Button";
 import Upload from "../../components/Upload";
 import {useNavigate} from "react-router";
-import {createProject} from "../../lib/puter.action";
+import {createProject, signIn} from "../../lib/puter.action";
 import {useState} from "react";
 
 export function meta({}: Route.MetaArgs) {
@@ -28,12 +28,12 @@ export default function Home() {
         }
 
         const saved = await createProject({item: newItem , visibility: 'private'});
-
+        
         if(!saved){
             console.error("Failed to create project");
             return false;
         }
-        setProjects((prev) => [newItem, ...prev] );
+        setProjects((prev) => [saved, ...prev] );
 
         navigate(`/visualizer/${newId}`, {
             state: {
@@ -43,10 +43,13 @@ export default function Home() {
             } });
 
         return true;
+
     }
+
   return (
       <div className="home">
         <Navbar />
+
       <section className="hero">
           <div className="announce">
               <div className="dot">
@@ -80,6 +83,7 @@ export default function Home() {
                       </div>
                       <h3>Upload your floor plan</h3>
                       <p>supports JPG, PNG, formats up to 50MB</p>
+
                   </div>
                   <Upload onComplete={handleUploadComplete}/>
               </div>
@@ -98,7 +102,7 @@ export default function Home() {
               <div className="projects-grid">
                   {projects.map(({id,name,renderedImage,sourceImage,timestamp}) =>(
 
-                      <div className="project-card group">
+                      <div className="project-card group" key={id}>
                           <div className="preview">
                               <img src={renderedImage || sourceImage}
                                    alt="Project preview"/>

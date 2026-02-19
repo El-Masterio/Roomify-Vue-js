@@ -1,7 +1,7 @@
 import puter from "@heyputer/puter.js";
 import type {User} from "@heyputer/puter.js/types/modules/auth";
 import {getOrCreateHostingConfig, uploadImageToHosting} from "./puter.hosting";
-import {isHostedUrl} from "./utils";
+import {isHostedUrl, PROJECT_PREFIX} from "./utils";
 
 export const signIn = async () => await puter.auth.signIn();
 
@@ -15,6 +15,16 @@ export const getCurrentUser = async () => {
         return null
     }
 
+}
+
+export const getProject = async (id: string): Promise<DesignItem | null> => {
+    try {
+        const project = await puter.kv.get(`${PROJECT_PREFIX}${id}`);
+        return project as DesignItem | null;
+    } catch (error) {
+        console.error('Failed to get Project', error);
+        return null;
+    }
 }
 
 export const createProject = async ({item}: CreateProjectParams): Promise<DesignItem | null | undefined> => {
@@ -54,8 +64,7 @@ export const createProject = async ({item}: CreateProjectParams): Promise<Design
 
     try{
         // Call the Puter worker to store project in kv
-
-
+        await puter.kv.set(`${PROJECT_PREFIX}${projectId}`, payload);
 
     return payload
 
