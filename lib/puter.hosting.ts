@@ -24,7 +24,9 @@
     try{
         const created = await puter.hosting.create(subdomain,'.');
 
-        return {subdomain : created.subdomain};
+        const record = {subdomain : created.subdomain}; // this way we save the record so it wont and try to recreate it every single time
+        await puter.kv.set(HOSTING_CONFIG_KEY, record);
+        return record;
 
     }catch(err){
      console.log(`Could not find subdomain: ${err}`);
