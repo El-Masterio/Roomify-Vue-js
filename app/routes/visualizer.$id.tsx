@@ -7,14 +7,62 @@ import Button from "../../components/ui/Button";
 
 const VisualizerId = () => {
     const navigae = useNavigate();
+    const { id } = useParams();
     const location = useLocation();
-    const {initialImage, initialRender, name} = location.state || {};
 
-    const hasInitialGenerated = useRef(false);
+    const [projectData, setProjectData] = useState<{
+        initialImage: string | null;
+        initialRender: string | null;
+        name: string | null;
+    }>(() => {
+        const state = location.state || {};
+        return {
+            initialImage: state.initialImage || null,
+            initialRender: state.initialRender || null,
+            name: state.name || null,
+        };
+    });
+
+    const [loading, setLoading] = useState(!projectData.initialImage && !!id);
+    const [error, setError] = useState<string | null>(null);
+
+    const {initialImage, initialRender, name} = projectData;
+
+    const lastGeneratedInitialRef = useRef<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [currentImage, setCurrentImage] = useState<string | null>(initialRender || null);
 
     const handleBack = () => navigae('/')
+
+    useEffect(() => {
+        if (!projectData.initialImage && id) {
+            const fetchProject = async () => {
+                setLoading(true);
+                try {
+                    const project = await getProject(id);
+                    if (project) {
+                        setProjectData({
+                            initialImage: project.sourceImage,
+                            initialRender: project.renderedImage || null,
+                            name: project.name || 'Untitled Project',
+                        });
+                        // Also sync current image if initialRender exists
+                        if (project.renderedImage) {
+                            setCurrentImage(project.renderedImage);
+                        }
+                    } else {
+                        setError("Project not found");
+                    }
+                } catch (err) {
+                    console.error('Failed to load project:', err);
+                    setError("Failed to load project");
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchProject();
+        }
+    }, [id, projectData.initialImage]);
 
     const runGeneration = async () => {
         if(!initialImage) return;
@@ -25,7 +73,7 @@ const VisualizerId = () => {
 
             if(result.renderedImage) {
                 setCurrentImage(result.renderedImage);
-
+                lastGeneratedInitialRef.current = initialImage;
                 // update the project database with the rendered image
             }
         }catch(e){
@@ -36,18 +84,43 @@ const VisualizerId = () => {
     }
 
     useEffect(() => {
-
-        if(!initialImage || hasInitialGenerated.current) return;
+        if(!initialImage || lastGeneratedInitialRef.current === initialImage) return;
 
         if(initialRender) {
             setCurrentImage(initialRender);
-            hasInitialGenerated.current = true;
+            lastGeneratedInitialRef.current = initialImage;
             return;
         }
-        hasInitialGenerated.current = true;
+
+        lastGeneratedInitialRef.current = initialImage;
         runGeneration();
 
-    }, [initialImage,initialRender]);
+    }, [initialImage, initialRender]);
+
+    if (loading) {
+        return (
+            <div className="visualizer flex items-center justify-center h-screen">
+                <div className="text-center">
+                    <RefreshCcw className="spinner w-8 h-8 mx-auto mb-4 animate-spin" />
+                    <p className="text-lg font-medium">Loading project...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="visualizer flex items-center justify-center h-screen text-red-500">
+                <div className="text-center">
+                    <X className="w-12 h-12 mx-auto mb-4" />
+                    <p className="text-xl font-bold">{error}</p>
+                    <Button variant="ghost" onClick={handleBack} className="mt-4">
+                        Back to Home
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
 
     return (
@@ -69,7 +142,7 @@ const VisualizerId = () => {
                        <div className="panel-header">
                            <div className="panel-meta">
                                <p>Project</p>
-                               <h2>{'Untitled Project'}</h2>
+                               <h2>{name || 'Untitled Project'}</h2>
                                <p className="note"> Created by you</p>
                            </div>
                            <div className="panel-actions">
